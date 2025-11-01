@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sistema de Votação do Grêmio</title>
+  <style>
+    :root {
+      --primary: #0b63d0;
+      --accent: #15c39a;
+      --bg: #f5f6fa;
+      --text: #222;
+    }
+
+    * {
+      box-sizing: border-box;
+      font-family: 'Segoe UI', sans-serif;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    #app {
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+      padding: 30px;
+      width: 100%;
+      max-width: 600px;
+    }
+
+    h1, h2, h3 {
+      color: var(--primary);
+      text-align: center;
+    }
+
+    input, button {
+      width: 100%;
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      font-size: 1rem;
+    }
+
+    button {
+      background: var(--primary);
+      color: white;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+
+    button:hover {
+      background: var(--accent);
+    }
+
+    .hidden { display: none; }
+
+    .chapa-card {
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 10px;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <h1>🗳️ Sistema de Votação do Grêmio</h1>
+
+    <div id="tela-login">
+      <h2>Login</h2>
+      <input type="text" id="usuario" placeholder="Digite seu nome" />
+      <button onclick="login()">Entrar</button>
+    </div>
+
+    <div id="tela-menu" class="hidden">
+      <h2>Bem-vindo, <span id="nome-usuario"></span>!</h2>
+      <button onclick="mostrarTela('cadastro')">Cadastrar Chapa</button>
+      <button onclick="mostrarTela('votacao')">Votar</button>
+      <button onclick="mostrarTela('resultado')">Ver Resultados</button>
+      <button onclick="sair()">Sair</button>
+    </div>
+
+    <div id="tela-cadastro" class="hidden">
+      <h2>Cadastro de Chapa</h2>
+      <input type="text" id="nome-chapa" placeholder="Nome da chapa" />
+      <input type="text" id="slogan-chapa" placeholder="Slogan" />
+      <textarea id="integrantes-chapa" placeholder="Integrantes (separados por vírgula)"></textarea>
+      <button onclick="cadastrarChapa()">Cadastrar</button>
+      <button onclick="mostrarTela('menu')">Voltar</button>
+    </div>
+
+    <div id="tela-votacao" class="hidden">
+      <h2>Votação</h2>
+      <div id="lista-chapas"></div>
+      <button onclick="mostrarTela('menu')">Voltar</button>
+    </div>
+
+    <div id="tela-resultado" class="hidden">
+      <h2>Resultados</h2>
+      <div id="resultado-lista"></div>
+      <button onclick="mostrarTela('menu')">Voltar</button>
+    </div>
+  </div>
+
+  <script>
+    let usuario = '';
+
+    function login() {
+      const nome = document.getElementById('usuario').value.trim();
+      if (nome === '') {
+        alert('Digite seu nome!');
+        return;
+      }
+      usuario = nome;
+      document.getElementById('nome-usuario').textContent = nome;
+      mostrarTela('menu');
+    }
+
+    function sair() {
+      usuario = '';
+      mostrarTela('login');
+    }
+
+    function mostrarTela(tela) {
+      const telas = ['login','menu','cadastro','votacao','resultado'];
+      telas.forEach(t => document.getElementById('tela-' + t).classList.add('hidden'));
+      document.getElementById('tela-' + tela).classList.remove('hidden');
+      if (tela === 'votacao') atualizarListaChapas();
+      if (tela === 'resultado') mostrarResultados();
+    }
+
+    function cadastrarChapa() {
+      const nome = document.getElementById('nome-chapa').value.trim();
+      const slogan = document.getElementById('slogan-chapa').value.trim();
+      const integrantes = document.getElementById('integrantes-chapa').value.trim();
+      if (!nome || !slogan || !integrantes) {
+        alert('Preencha todos os campos!');
+        return;
+      }
+      const chapas = JSON.parse(localStorage.getItem('chapas') || '[]');
+      chapas.push({ nome, slogan, integrantes, votos: 0 });
+      localStorage.setItem('chapas', JSON.stringify(chapas));
+      alert('Chapa cadastrada com sucesso!');
+      document.getElementById('nome-chapa').value = '';
+      document.getElementById('slogan-chapa').value = '';
+      document.getElementById('integrantes-chapa').value = '';
+      mostrarTela('menu');
+    }
+
+    function atualizarListaChapas() {
+      const chapas = JSON.parse(localStorage.getItem('chapas') || '[]');
+      const lista = document.getElementById('lista-chapas');
+      lista.innerHTML = '';
+      chapas.forEach((c, i) => {
+        const div = document.createElement('div');
+        div.className = 'chapa-card';
+        div.innerHTML = `<strong>${c.nome}</strong><br>${c.slogan}<br><button onclick="votar(${i})">Votar</button>`;
+        lista.appendChild(div);
+      });
+    }
+
+    function votar(i) {
+      let chapas = JSON.parse(localStorage.getItem('chapas') || '[]');
+      chapas[i].votos += 1;
+      localStorage.setItem('chapas', JSON.stringify(chapas));
+      alert('Voto registrado com sucesso!');
+      mostrarTela('menu');
+    }
+
+    function mostrarResultados() {
+      const chapas = JSON.parse(localStorage.getItem('chapas') || '[]');
+      const total = chapas.reduce((sum, c) => sum + c.votos, 0) || 1;
+      const lista = document.getElementById('resultado-lista');
+      lista.innerHTML = '';
+      chapas.forEach(c => {
+        const perc = ((c.votos / total) * 100).toFixed(1);
+        const div = document.createElement('div');
+        div.innerHTML = `<strong>${c.nome}</strong> - ${c.votos} voto(s) (${perc}%)`;
+        lista.appendChild(div);
+      });
+    }
+
+    // Inicializa na tela de login
+    mostrarTela('login');
+  </script>
+</body>
+</html>
